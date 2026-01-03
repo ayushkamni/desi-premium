@@ -71,9 +71,14 @@ router.post('/login', async (req, res) => {
             }
         };
 
+        if (!process.env.JWT_SECRET) {
+            console.error('JWT_SECRET is not defined');
+            return res.status(500).json({ msg: 'Server configuration error' });
+        }
+
         jwt.sign(
             payload,
-            process.env.JWT_SECRET || 'secret123', // Fallback for dev
+            process.env.JWT_SECRET,
             { expiresIn: '5d' },
             (err, token) => {
                 if (err) throw err;

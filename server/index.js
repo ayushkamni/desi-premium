@@ -9,6 +9,17 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Validate required environment variables
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+    console.error('ERROR: Missing required environment variables:');
+    missingEnvVars.forEach(varName => console.error(`  - ${varName}`));
+    console.error('Please set these in your Render environment variables.');
+    process.exit(1);
+}
+
 // Middleware
 app.use(express.json());
 app.use(cors());
@@ -19,22 +30,28 @@ mongoose.connect(process.env.MONGO_URI, {
     useUnifiedTopology: true,
 })
     .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
+    .catch(err => {
+        console.error('MongoDB Connection Error:', err);
+        process.exit(1);
+    });
 
-// Routes (Placeholder)
+// Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/videos', require('./routes/videos'));
 
-// Serve Uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve Uploads (if directory exists)
+const fs = require('fs');
+const uploadsPath = path.join(__dirname, 'uploads');
+if (fs.existsSync(uploadsPath)) {
+    app.use('/uploads', express.static(uploadsPath));
+}
 
-// Hostinger/Render Deployment: Serve Client
+// Production: Serve Client
 if (process.env.NODE_ENV === 'production') {
     const clientPath = path.resolve(__dirname, '../client/dist');
     const indexPath = path.resolve(clientPath, 'index.html');
-    
-    // Check if dist folder exists
+
     const fs = require('fs');
     if (fs.existsSync(clientPath) && fs.existsSync(indexPath)) {
         console.log('Serving static files from:', clientPath);

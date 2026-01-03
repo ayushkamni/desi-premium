@@ -39,10 +39,17 @@ router.put('/approve/:id', [auth, admin], async (req, res) => {
 
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Configure Multer Storage
 const storage = multer.diskStorage({
-    destination: './uploads/',
+    destination: path.join(__dirname, '../uploads'),
     filename: function (req, file, cb) {
         cb(null, 'video-' + Date.now() + path.extname(file.originalname));
     }
@@ -97,7 +104,6 @@ function getResourceType(file) {
 }
 
 const cloudinary = require('cloudinary').v2;
-const fs = require('fs');
 
 // Cloudinary Config
 cloudinary.config({
@@ -331,37 +337,117 @@ router.delete('/videos/:id', [auth, admin], async (req, res) => {
 });
 
 // @route   PUT /api/admin/videos/:id
-// @desc    Update video details
+// @desc    Update video details (supports file updates -> Cloudinary)
 // @access  Private/Admin
-router.put('/videos/:id', [auth, admin], async (req, res) => {
-    const { title, description, category, tags, type, videoUrl, thumbnailUrl } = req.body;
+router.put('/videos/:id', [auth, admin], (req, res) => {
+    upload(req, res, async (err) => {
+        if (err) {
+            return res.status(400).json({ msg: err });
+        }
 
-    const videoFields = {};
-    if (title) videoFields.title = title;
-    if (description !== undefined) videoFields.description = description;
-    if (category) videoFields.category = category;
-    if (type) videoFields.type = type;
-    if (videoUrl) videoFields.videoUrl = videoUrl;
-    if (thumbnailUrl) videoFields.thumbnailUrl = thumbnailUrl;
-    if (tags) {
-        videoFields.tags = Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim());
-    }
+        try {
+            let video = await Video.findById(req.params.id);
+            if (!video) return res.status(404).json({ msg: 'Video not found' });
 
-    try {
-        let video = await Video.findById(req.params.id);
-        if (!video) return res.status(404).json({ msg: 'Video not found' });
+            const { title, description, category, tags, type, videoUrl, thumbnailUrl } = req.body;
+            const videoFields = {};
 
-        video = await Video.findByIdAndUpdate(
-            req.params.id,
-            { $set: videoFields },
-            { new: true }
-        );
+            if (title) videoFields.title = title;
+            if (description !== undefined) videoFields.description = description;
+            if (category) videoFields.category = category;
+            if (type) videoFields.type = type;
 
-        res.json(video);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
+            // Handle Tags
+            if (tags) {
+                videoFields.tags = Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim());
+            }
+
+            // Handle Video File Upload
+            if (req.files && req.files['videoFile']) {
+                const videoFile = req.files['videoFile'][0];
+                const videoPath = videoFile.path;
+
+                if (process.env.CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+                    try {
+                        const resourceType = getResourceType(videoFile);
+                        const folder = resourceType === 'video' ? 'desi-premium/videos' : 'desi-premium/images';
+
+                        const result = await cloudinary.uploader.upload(videoPath, {
+                            resource_type: resourceType,
+                            folder: folder
+                        });
+                        videoFields.videoUrl = result.secure_url;
+
+                        // Cleanup local file
+                        if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+                    } catch (uploadErr) {
+                        console.error('Cloudinary upload error:', uploadErr);
+                        // Cleanup local file on error
+                        if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+                        throw new Error('Failed to upload video file to Cloudinary');
+                    }
+                } else {
+                    // Cleanup local file if Cloudinary not configured
+                    if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+                    return res.status(500).json({ msg: 'Cloudinary configuration is missing' });
+                }
+            } else if (videoUrl && videoUrl.trim() !== '') {
+                videoFields.videoUrl = videoUrl.trim();
+            }
+
+            // Handle Thumbnail File Upload
+            if (req.files && req.files['thumbnailFile']) {
+                const thumbPath = req.files['thumbnailFile'][0].path;
+
+                if (process.env.CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+                    try {
+                        const result = await cloudinary.uploader.upload(thumbPath, {
+                            resource_type: "image",
+                            folder: "desi-premium/thumbnails"
+                        });
+                        videoFields.thumbnailUrl = result.secure_url;
+
+                        // Cleanup local file
+                        if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+                    } catch (uploadErr) {
+                        console.error('Cloudinary upload error:', uploadErr);
+                        // Cleanup local file on error
+                        if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+                        throw new Error('Failed to upload thumbnail to Cloudinary');
+                    }
+                } else {
+                    // Cleanup local file if Cloudinary not configured
+                    if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+                    return res.status(500).json({ msg: 'Cloudinary configuration is missing' });
+                }
+            } else if (thumbnailUrl && thumbnailUrl.trim() !== '') {
+                videoFields.thumbnailUrl = thumbnailUrl.trim();
+            }
+
+            video = await Video.findByIdAndUpdate(
+                req.params.id,
+                { $set: videoFields },
+                { new: true }
+            );
+
+            res.json(video);
+        } catch (err) {
+            console.error('Update video error:', err);
+            
+            // Clean up any uploaded files on error
+            if (req.files && req.files['videoFile']) {
+                const videoPath = req.files['videoFile'][0].path;
+                if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+            }
+            if (req.files && req.files['thumbnailFile']) {
+                const thumbPath = req.files['thumbnailFile'][0].path;
+                if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+            }
+            
+            const errorMessage = err.message || 'Server Error';
+            res.status(500).json({ msg: errorMessage });
+        }
+    });
 });
 
 // @route   DELETE /api/admin/users/:id

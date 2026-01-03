@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaUsers, FaVideo, FaChartLine, FaSignOutAlt, FaCheck, FaTimes, FaCloudUploadAlt } from 'react-icons/fa';
+import { FaTelegramPlane } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 
@@ -124,9 +125,12 @@ const AdminDashboard = () => {
             thumbnailUrl: video.thumbnailUrl,
             category: video.category,
             type: video.type || 'video',
-            tags: video.tags ? video.tags.join(', ') : ''
+            tags: video.tags ? video.tags.join(', ') : '',
+            videoFile: null,
+            thumbnailFile: null
         });
         setViewMode('edit');
+        setUploadStatus('');
     };
 
     const initiatePasswordReset = (user) => {
@@ -180,7 +184,9 @@ const AdminDashboard = () => {
 
         try {
             if (viewMode === 'edit') {
-                await api.put(`/admin/videos/${editingVideo._id}`, videoForm);
+                await api.put(`/admin/videos/${editingVideo._id}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 setUploadStatus('Video Updated Successfully!');
                 setViewMode('list');
                 fetchVideos();
@@ -375,7 +381,8 @@ const AdminDashboard = () => {
                                 onClick={() => {
                                     setViewMode(viewMode === 'list' ? 'upload' : 'list');
                                     setUploadStatus('');
-                                    setVideoForm({ title: '', description: '', videoUrl: '', thumbnailUrl: '', category: 'desi', type: 'video', tags: '' });
+                                    setEditingVideo(null);
+                                    setVideoForm({ title: '', description: '', videoUrl: '', thumbnailUrl: '', category: 'desi', type: 'video', tags: '', videoFile: null, thumbnailFile: null });
                                 }}
                                 className="px-4 py-2 bg-gradient-to-r from-saffron to-gold text-dark font-bold rounded-lg hover:shadow-lg transition-all"
                             >
@@ -488,7 +495,7 @@ const AdminDashboard = () => {
                                                 onChange={(e) => setVideoForm({ ...videoForm, videoUrl: e.target.value })}
                                             />
 
-                                            {videoForm.type !== 'link' && viewMode !== 'edit' && (
+                                            {videoForm.type !== 'link' && (
                                                 <div className="flex items-center">
                                                     <span className="text-gray-500 mr-2 text-sm">OR</span>
                                                     <input
@@ -516,18 +523,16 @@ const AdminDashboard = () => {
                                                 onChange={(e) => setVideoForm({ ...videoForm, thumbnailUrl: e.target.value })}
                                             />
 
-                                            {viewMode !== 'edit' && (
-                                                <div className="flex items-center">
-                                                    <span className="text-gray-500 mr-2 text-sm">OR</span>
-                                                    <input
-                                                        type="file"
-                                                        name="thumbnailFile"
-                                                        className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20"
-                                                        onChange={handleFileChange}
-                                                        accept="image/*"
-                                                    />
-                                                </div>
-                                            )}
+                                            <div className="flex items-center">
+                                                <span className="text-gray-500 mr-2 text-sm">OR</span>
+                                                <input
+                                                    type="file"
+                                                    name="thumbnailFile"
+                                                    className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20"
+                                                    onChange={handleFileChange}
+                                                    accept="image/*"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                     <div>
@@ -569,7 +574,12 @@ const AdminDashboard = () => {
                                         {viewMode === 'edit' && (
                                             <button
                                                 type="button"
-                                                onClick={() => setViewMode('list')}
+                                                onClick={() => {
+                                                    setViewMode('list');
+                                                    setEditingVideo(null);
+                                                    setUploadStatus('');
+                                                    setVideoForm({ title: '', description: '', videoUrl: '', thumbnailUrl: '', category: 'desi', type: 'video', tags: '', videoFile: null, thumbnailFile: null });
+                                                }}
                                                 className="flex-1 py-3 bg-white/10 text-white font-bold rounded-lg hover:bg-white/20 transition-all"
                                             >
                                                 Cancel
