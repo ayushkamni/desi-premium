@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 
 const Signup = () => {
     const navigate = useNavigate();
@@ -17,7 +17,7 @@ const Signup = () => {
         setSuccess('');
 
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/register', formData);
+            const res = await api.post('/auth/register', formData);
             setSuccess(res.data.msg);
             setTimeout(() => navigate('/login'), 3000);
         } catch (err) {
@@ -39,7 +39,13 @@ const Signup = () => {
                 transition={{ duration: 0.8 }}
                 className="glass-dark p-8 rounded-2xl w-full max-w-md relative z-10 border border-gold/20 shadow-2xl"
             >
-                <div className="text-center mb-8">
+                <div className="absolute top-6 left-6">
+                    <Link to="/" className="text-gray-400 hover:text-gold transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
+                        ← Home
+                    </Link>
+                </div>
+
+                <div className="text-center mb-8 mt-4">
                     <h1 className="text-3xl font-premium font-bold gradient-text mb-2">Join the Exclusive Club</h1>
                     <p className="text-gray-400 font-body text-sm">Your gateway to Desi Premium Entertainment</p>
                 </div>

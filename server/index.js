@@ -29,11 +29,20 @@ app.use('/api/videos', require('./routes/videos'));
 // Serve Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Hostinger Deployment: Serve Client
+// Hostinger/Render Deployment: Serve Client
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../client/dist')));
+    const clientPath = path.resolve(__dirname, '../client/dist');
+    console.log('Serving static files from:', clientPath);
+
+    app.use(express.static(clientPath));
     app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+        const indexPath = path.resolve(clientPath, 'index.html');
+        res.sendFile(indexPath, (err) => {
+            if (err) {
+                console.error('Error sending index.html:', err);
+                res.status(500).send(err);
+            }
+        });
     });
 }
 

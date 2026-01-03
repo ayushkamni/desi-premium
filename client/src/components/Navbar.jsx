@@ -72,13 +72,20 @@ const Navbar = () => {
             </button>
           </div>
         ) : (
-          <div className="hidden md:flex gap-4">
-            <Link to="/login" className="text-white">Login</Link>
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              to="/login"
+              className="text-gray-300 hover:text-white transition-colors relative group py-2"
+            >
+              <span>Login</span>
+              <span className="absolute bottom-1 left-0 w-0 h-[2px] bg-gradient-to-r from-saffron to-gold group-hover:w-full transition-all duration-300"></span>
+            </Link>
             <Link
               to="/signup"
-              className="px-4 py-2 rounded-full bg-gradient-to-r from-orange-500 to-yellow-400 text-black"
+              className="relative overflow-hidden group px-6 py-2.5 rounded-full bg-gradient-to-r from-saffron to-gold text-dark font-bold shadow-lg shadow-saffron/20 transition-all hover:shadow-saffron/40 hover:-translate-y-0.5 active:scale-95"
             >
-              Sign Up
+              <span className="relative z-10">Sign Up</span>
+              <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[-20deg]"></div>
             </Link>
           </div>
         )}

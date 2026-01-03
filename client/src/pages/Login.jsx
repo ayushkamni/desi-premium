@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -14,7 +14,7 @@ const Login = () => {
         setError('');
 
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+            const res = await api.post('/auth/login', { email, password });
 
             // Save token and user info
             localStorage.setItem('token', res.data.token);
@@ -50,7 +50,13 @@ const Login = () => {
                 transition={{ duration: 0.8 }}
                 className="glass-dark p-8 rounded-2xl w-full max-w-md relative z-10 border border-gold/20 shadow-2xl"
             >
-                <div className="text-center mb-8">
+                <div className="absolute top-6 left-6">
+                    <Link to="/" className="text-gray-400 hover:text-gold transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
+                        ← Home
+                    </Link>
+                </div>
+
+                <div className="text-center mb-8 mt-4">
                     <h1 className="text-4xl font-premium font-bold gradient-text mb-2">Welcome Back</h1>
                     <p className="text-gray-400 font-body text-sm">Enter the Desi Premium World</p>
                 </div>

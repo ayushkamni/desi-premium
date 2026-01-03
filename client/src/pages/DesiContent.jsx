@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSearch, FaPlay, FaLock, FaTelegramPlane } from 'react-icons/fa';
-import axios from 'axios';
+import api from '../api';
 import Navbar from '../components/Navbar';
 
 const DesiContent = () => {
@@ -15,10 +15,8 @@ const DesiContent = () => {
 
     useEffect(() => {
         const fetchVideos = async () => {
-            const token = localStorage.getItem('token');
-            const config = { headers: { 'x-auth-token': token } };
             try {
-                const res = await axios.get('http://localhost:5000/api/videos', config);
+                const res = await api.get('/videos');
                 // Filter only Desi content
                 const desiContent = res.data.filter(video => video.category === 'desi');
                 setVideos(desiContent);
@@ -119,12 +117,28 @@ const DesiContent = () => {
                                     className="group relative rounded-2xl overflow-hidden glass-dark border border-white/5 hover:border-gold/30 transition-all hover:shadow-2xl hover:shadow-gold/10"
                                 >
                                     {/* Thumbnail / Content Preview */}
-                                    <div className="aspect-video relative overflow-hidden">
-                                        <img
-                                            src={video.thumbnailUrl}
-                                            alt={video.title}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                        />
+                                    <div className="aspect-video relative overflow-hidden bg-black/20">
+                                        {video.thumbnailUrl ? (
+                                            <img
+                                                src={video.thumbnailUrl}
+                                                alt={video.title}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-white/5 to-white/10 flex flex-col items-center justify-center gap-3 transition-colors group-hover:from-white/10 group-hover:to-white/20">
+                                                {video.type === 'link' ? (
+                                                    <>
+                                                        <FaTelegramPlane className="text-5xl text-[#0088cc] group-hover:scale-110 transition-transform duration-500" />
+                                                        <span className="text-[10px] font-black text-[#0088cc] tracking-[0.2em] uppercase">Telegram Link</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FaPlay className="text-4xl text-gray-600 group-hover:text-gold transition-colors duration-500" />
+                                                        <span className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase">{video.type}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {/* Overlay Content */}
                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSearch, FaTelegramPlane, FaLock, FaCrown, FaArrowRight, FaShieldAlt } from 'react-icons/fa';
-import axios from 'axios';
+import api from '../api';
 import Navbar from '../components/Navbar';
 
 const PremiumLinks = () => {
@@ -15,10 +15,8 @@ const PremiumLinks = () => {
 
     useEffect(() => {
         const fetchPremiumContent = async () => {
-            const token = localStorage.getItem('token');
-            const config = { headers: { 'x-auth-token': token } };
             try {
-                const res = await axios.get('http://localhost:5000/api/videos', config);
+                const res = await api.get('/videos');
                 const premiumContent = res.data.filter(item => item.category === 'premium');
                 setLinks(premiumContent);
                 setFilteredLinks(premiumContent);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaUsers, FaVideo, FaChartLine, FaSignOutAlt, FaCheck, FaTimes, FaCloudUploadAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -26,8 +26,6 @@ const AdminDashboard = () => {
     // Password Reset Modal State
     const [passwordModal, setPasswordModal] = useState({ show: false, userId: '', userName: '', newPassword: '' });
 
-    const token = localStorage.getItem('token');
-    const config = { headers: { 'x-auth-token': token } };
 
     useEffect(() => {
         fetchStats();
@@ -40,7 +38,7 @@ const AdminDashboard = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/admin/stats', config);
+            const res = await api.get('/admin/stats');
             setStats(res.data);
         } catch (err) {
             console.error("Error fetching stats", err);
@@ -50,7 +48,7 @@ const AdminDashboard = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:5000/api/admin/users', config);
+            const res = await api.get('/admin/users');
             setUsers(res.data);
         } catch (err) {
             console.error("Error fetching users", err);
@@ -63,7 +61,7 @@ const AdminDashboard = () => {
         try {
             // Need a route to get all videos for admin
             // Assuming /api/videos exists or we should use /api/admin/videos if we want all
-            const res = await axios.get('http://localhost:5000/api/videos', config);
+            const res = await api.get('/videos');
             setVideos(res.data);
         } catch (err) {
             console.error("Error fetching videos", err);
@@ -73,7 +71,7 @@ const AdminDashboard = () => {
 
     const approveUser = async (id) => {
         try {
-            await axios.put(`http://localhost:5000/api/admin/approve/${id}`, {}, config);
+            await api.put(`/admin/approve/${id}`, {});
             // Update UI optimistically
             setUsers(users.map(user => user._id === id ? { ...user, isApproved: true } : user));
             fetchStats(); // Refresh stats
@@ -85,7 +83,7 @@ const AdminDashboard = () => {
     const promoteToAdmin = async (id) => {
         if (!window.confirm("Are you sure you want to promote this user to Admin? They will have full access.")) return;
         try {
-            await axios.put(`http://localhost:5000/api/admin/promote/${id}`, {}, config);
+            await api.put(`/admin/promote/${id}`, {});
             setUsers(users.map(user => user._id === id ? { ...user, role: 'admin', isApproved: true } : user));
             fetchStats();
         } catch (err) {
@@ -96,7 +94,7 @@ const AdminDashboard = () => {
     const deleteUser = async (id) => {
         if (!window.confirm("Are you sure you want to remove this user? This action cannot be undone.")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/admin/users/${id}`, config);
+            await api.delete(`/admin/users/${id}`);
             setUsers(users.filter(user => user._id !== id));
             fetchStats();
         } catch (err) {
@@ -108,7 +106,7 @@ const AdminDashboard = () => {
     const deleteVideo = async (id) => {
         if (!window.confirm("Are you sure you want to delete this content?")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/admin/videos/${id}`, config);
+            await api.delete(`/admin/videos/${id}`);
             setVideos(videos.filter(v => v._id !== id));
             fetchStats();
         } catch (err) {
@@ -137,7 +135,7 @@ const AdminDashboard = () => {
 
     const handlePasswordReset = async () => {
         try {
-            await axios.put(`http://localhost:5000/api/admin/reset-password/${passwordModal.userId}`, { password: passwordModal.newPassword }, config);
+            await api.put(`/admin/reset-password/${passwordModal.userId}`, { password: passwordModal.newPassword });
             alert('Password updated successfully');
             setPasswordModal({ show: false, userId: '', userName: '', newPassword: '' });
         } catch (err) {
@@ -181,21 +179,15 @@ const AdminDashboard = () => {
 
 
         try {
-            // Don't set Content-Type header manually - axios will set it with boundary for FormData
-            const fileConfig = {
-                headers: {
-                    'x-auth-token': token
-                    // Content-Type will be set automatically by axios for FormData
-                }
-            };
-
             if (viewMode === 'edit') {
-                await axios.put(`http://localhost:5000/api/admin/videos/${editingVideo._id}`, videoForm, config);
+                await api.put(`/admin/videos/${editingVideo._id}`, videoForm);
                 setUploadStatus('Video Updated Successfully!');
                 setViewMode('list');
                 fetchVideos();
             } else {
-                const response = await axios.post('http://localhost:5000/api/admin/videos', formData, fileConfig);
+                const response = await api.post('/admin/videos', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 setUploadStatus('Video Uploaded Successfully!');
                 setViewMode('list');
                 fetchVideos();
@@ -522,7 +514,6 @@ const AdminDashboard = () => {
                                                 placeholder={videoForm.type === 'link' ? 'https://image-url...' : 'https://image...'}
                                                 value={videoForm.thumbnailUrl}
                                                 onChange={(e) => setVideoForm({ ...videoForm, thumbnailUrl: e.target.value })}
-                                                required={videoForm.type !== 'link'}
                                             />
 
                                             {viewMode !== 'edit' && (
