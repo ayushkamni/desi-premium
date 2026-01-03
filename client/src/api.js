@@ -1,9 +1,22 @@
 import axios from 'axios';
 
-// Automatically switch between Localhost and Render
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000/api'
-    : '/api';
+// Backend API URL Configuration
+// For local development: uses localhost
+// For production: uses Render backend URL or relative path if same domain
+const getApiUrl = () => {
+    // Check if we're on localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000/api';
+    }
+    
+    // For production: Use Render backend URL
+    // If frontend and backend are on same domain, use '/api'
+    // If separate services, use full backend URL
+    const BACKEND_URL = 'https://desi-premium-5.onrender.com';
+    return `${BACKEND_URL}/api`;
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
     baseURL: API_URL,
