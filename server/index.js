@@ -32,18 +32,28 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Hostinger/Render Deployment: Serve Client
 if (process.env.NODE_ENV === 'production') {
     const clientPath = path.resolve(__dirname, '../client/dist');
-    console.log('Serving static files from:', clientPath);
-
-    app.use(express.static(clientPath));
-    app.get('*', (req, res) => {
-        const indexPath = path.resolve(clientPath, 'index.html');
-        res.sendFile(indexPath, (err) => {
-            if (err) {
-                console.error('Error sending index.html:', err);
-                res.status(500).send(err);
-            }
+    const indexPath = path.resolve(clientPath, 'index.html');
+    
+    // Check if dist folder exists
+    const fs = require('fs');
+    if (fs.existsSync(clientPath) && fs.existsSync(indexPath)) {
+        console.log('Serving static files from:', clientPath);
+        app.use(express.static(clientPath));
+        app.get('*', (req, res) => {
+            res.sendFile(indexPath, (err) => {
+                if (err) {
+                    console.error('Error sending index.html:', err);
+                    res.status(500).send('Error loading application');
+                }
+            });
         });
-    });
+    } else {
+        console.warn('WARNING: Client dist folder not found at:', clientPath);
+        console.warn('Make sure to run "npm run build" before starting the server in production');
+        app.get('*', (req, res) => {
+            res.status(503).send('Application is building. Please try again in a moment.');
+        });
+    }
 }
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
