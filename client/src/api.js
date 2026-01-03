@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Get the API URL from environment variables, or fallback to localhost
 // For Vite, use import.meta.env.VITE_API_URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://desi-premium.onrender.com';
 
 const api = axios.create({
     baseURL: API_URL,
